@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<title>Real Service</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0f1117;
+    color: #e2e8f0;
+    font-family: 'Segoe UI', sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .badge {
+    background: rgba(52,211,153,.15);
+    border: 1px solid rgba(52,211,153,.4);
+    color: #34d399;
+    padding: 6px 18px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  h1 { font-size: 32px; font-weight: 700; color: #34d399; }
+  p { color: #64748b; font-size: 15px; }
+  .port { font-family: monospace; color: #38bdf8; font-size: 13px; }
+</style>
+</head>
+<body>
+  <div class="badge">REAL SERVICE — LEGITIMATE ACCESS</div>
+  <h1>You reached the real server</h1>
+  <p>This is the actual web application behind the MTD gateway.</p>
+  <p>Legitimate user traffic is served here.</p>
+  <div class="port">Direct access: localhost:8081 &nbsp;|&nbsp; Via gateway: localhost:8080</div>
+</body>
+</html>

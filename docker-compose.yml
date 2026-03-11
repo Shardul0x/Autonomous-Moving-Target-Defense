@@ -1,0 +1,36 @@
+version: '3.8'
+
+networks:
+  mtd_network:
+    driver: bridge
+
+services:
+  webapp:
+    build: ./webapp
+    container_name: mtd_webapp
+    networks:
+      - mtd_network
+    ports:
+      - "8081:80"
+    restart: unless-stopped
+
+  honeypot:
+    build: ./honeypot
+    container_name: mtd_honeypot
+    networks:
+      - mtd_network
+    ports:
+      - "8082:80"
+    restart: unless-stopped
+
+  gateway:
+    build: ./gateway
+    container_name: mtd_gateway
+    networks:
+      - mtd_network
+    ports:
+      - "8080:80"
+    depends_on:
+      - webapp
+      - honeypot
+    restart: unless-stopped

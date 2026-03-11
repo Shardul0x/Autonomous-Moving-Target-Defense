@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<title>Service</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0f0a0a;
+    color: #e2e8f0;
+    font-family: 'Segoe UI', sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .badge {
+    background: rgba(248,113,113,.15);
+    border: 1px solid rgba(248,113,113,.4);
+    color: #f87171;
+    padding: 6px 18px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  h1 { font-size: 32px; font-weight: 700; color: #f87171; }
+  p { color: #64748b; font-size: 15px; }
+  .log {
+    margin-top: 16px;
+    background: rgba(248,113,113,.08);
+    border: 1px solid rgba(248,113,113,.2);
+    border-radius: 8px;
+    padding: 16px 24px;
+    font-family: monospace;
+    font-size: 12px;
+    color: #f87171;
+    line-height: 2;
+  }
+  #ts { color: #fb923c; }
+</style>
+</head>
+<body>
+  <div class="badge">HONEYPOT ACTIVE — DECEPTION SYSTEM</div>
+  <h1>You have been redirected</h1>
+  <p>The real infrastructure has moved. You are now in the honeypot.</p>
+  <div class="log">
+    <div>IP: <span id="ip">--</span></div>
+    <div>Time: <span id="ts">--</span></div>
+    <div>Status: Activity being logged</div>
+    <div>MTD: Infrastructure shifted away</div>
+  </div>
+  <script>
+    document.getElementById('ts').textContent = new Date().toLocaleTimeString();
+    document.getElementById('ip').textContent = 'REDACTED';
+    setInterval(() => document.getElementById('ts').textContent = new Date().toLocaleTimeString(), 1000);
+  </script>
+</body>
+</html>
