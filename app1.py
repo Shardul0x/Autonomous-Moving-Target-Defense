@@ -23,34 +23,29 @@ def check_docker():
         return False
 
 def nginx_switch(target: str) -> bool:
+    """
+    Write nginx config using a single-line echo to avoid Windows/Linux CRLF line-ending issues.
+    """
     upstream = "mtd_honeypot" if target == "honeypot" else "mtd_webapp"
-    config = (
-        "events {}\n"
-        "http {\n"
-        "  server {\n"
-        "    listen 80;\n"
-        "    location / {\n"
-        f"      proxy_pass http://{upstream}:80;\n"
-        "    }\n"
-        "  }\n"
-        "}\n"
-    )
+    
+    # Properly spaced single-line Nginx config
+    cfg = f"events {{}} http {{ server {{ listen 80; location / {{ proxy_pass http://{upstream}:80; }} }} }}"
+    
     try:
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.conf', delete=False) as f:
-            f.write(config)
-            tmp = f.name
-        cp = subprocess.run(
-            ["docker", "cp", tmp, "mtd_gateway:/etc/nginx/nginx.conf"],
+        write = subprocess.run(
+            ["docker", "exec", "mtd_gateway", "sh", "-c", f"echo '{cfg}' > /etc/nginx/nginx.conf"],
             capture_output=True, timeout=8, text=True)
-        os.unlink(tmp)
-        if cp.returncode != 0:
-            print(f"[Docker] cp failed: {cp.stderr.strip()}")
+            
+        if write.returncode != 0:
+            print(f"[Docker] write failed: {write.stderr.strip()}")
             return False
+            
         rel = subprocess.run(
             ["docker", "exec", "mtd_gateway", "nginx", "-s", "reload"],
             capture_output=True, timeout=8, text=True)
+            
         ok = rel.returncode == 0
-        print(f"[Docker] nginx -> {upstream}: {'OK' if ok else 'FAIL: '+rel.stderr.strip()}")
+        print(f"[Docker] nginx->{upstream}: {'OK' if ok else 'FAIL '+rel.stderr.strip()}")
         return ok
     except Exception as e:
         print(f"[Docker] error: {e}")

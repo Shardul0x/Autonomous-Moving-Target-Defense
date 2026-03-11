@@ -19,30 +19,39 @@
 }
 body{background:var(--bg);color:var(--txt);font-family:'Inter',sans-serif;font-size:14px;line-height:1.5;min-height:100vh}
 
-/* NAV */
-nav{
-  height:54px;background:var(--s1);border-bottom:1px solid var(--b1);
+/* SLIM HEADER (nav removed) */
+.hdr-strip{
   display:flex;align-items:center;justify-content:space-between;
-  padding:0 24px;position:sticky;top:0;z-index:100;
+  padding:7px 20px;background:var(--s1);border-bottom:1px solid var(--b1);
+  position:sticky;top:0;z-index:100;
 }
-.nav-left{display:flex;align-items:center;gap:14px}
-.nav-logo{
-  width:34px;height:34px;border-radius:9px;
-  background:linear-gradient(135deg,#38bdf8 0%,#818cf8 100%);
-  display:flex;align-items:center;justify-content:center;
-  font-size:14px;font-weight:700;color:#fff;letter-spacing:.5px;
-}
-.nav-info h1{font-size:14px;font-weight:600;color:var(--txt)}
-.nav-info p{font-size:11px;color:var(--sub)}
-.nav-right{display:flex;align-items:center;gap:8px}
+.hdr-title{font-size:11px;font-weight:600;color:var(--sub);letter-spacing:.4px}
+.hdr-title b{color:var(--txt)}
+.hdr-right{display:flex;align-items:center;gap:8px}
 .chip{
   display:flex;align-items:center;gap:5px;
   background:var(--s2);border:1px solid var(--b1);
-  border-radius:6px;padding:5px 10px;font-size:11px;color:var(--sub);
+  border-radius:6px;padding:4px 10px;font-size:11px;color:var(--sub);
 }
 .chip-dot{width:5px;height:5px;border-radius:50%;background:var(--green);box-shadow:0 0 5px var(--green);animation:blink 2s infinite}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
 .dev-badge{background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.25);color:var(--yellow);font-size:10px;padding:3px 9px;border-radius:4px;font-weight:500}
+/* HONEYPOT ALERT BANNER */
+#hp-alert{
+  display:none;position:sticky;top:33px;z-index:99;
+  background:rgba(160,15,15,.97);border-bottom:2px solid var(--red);
+  padding:8px 20px;align-items:center;justify-content:space-between;gap:12px;
+  animation:hp-pulse 1s ease infinite alternate;
+}
+@keyframes hp-pulse{from{box-shadow:0 2px 20px rgba(248,113,113,.2)}to{box-shadow:0 2px 30px rgba(248,113,113,.5)}}
+.hp-alert-left{display:flex;align-items:center;gap:10px;font-size:12px;font-weight:600;color:#fff}
+.hp-alert-blink{animation:blink .5s step-end infinite;font-size:15px}
+.hp-alert-sub{font-size:10px;color:rgba(255,180,180,.75);font-weight:400;margin-left:4px}
+.hp-alert-btn{
+  padding:5px 14px;background:var(--red);border:none;border-radius:5px;
+  color:#fff;font-size:11px;font-weight:600;cursor:pointer;text-decoration:none;
+  font-family:'Inter',sans-serif;flex-shrink:0;display:inline-block;
+}
 
 /* LAYOUT */
 .layout{display:grid;grid-template-columns:260px 1fr 320px;gap:14px;padding:16px 20px;max-width:1700px;margin:0 auto}
@@ -192,22 +201,25 @@ tr:last-child td{border-bottom:none}
 
 <div id="toast"></div>
 
-<nav>
-  <div class="nav-left">
-    <div class="nav-logo">M</div>
-    <div class="nav-info">
-      <h1>Autonomous Moving Target Defense</h1>
-      <p>Meraki Legion · VIIT Pune · India Innovates 2026</p>
-    </div>
-    <div class="dev-badge">Prototype</div>
-  </div>
-  <div class="nav-right">
+<div class="hdr-strip">
+  <div class="hdr-title"><b>MTD</b> &nbsp;·&nbsp; Autonomous Moving Target Defense &nbsp;·&nbsp; Meraki Legion · VIIT Pune</div>
+  <div class="hdr-right">
     <div class="chip"><div class="chip-dot"></div> Live</div>
     <div class="chip">Isolation Forest</div>
     <div class="chip" id="hdr-shifts">0 shifts</div>
     <div class="chip" id="hdr-clock">--:--:--</div>
+    <div class="dev-badge">Prototype</div>
   </div>
-</nav>
+</div>
+<!-- HONEYPOT AUTO-REDIRECT ALERT -->
+<div id="hp-alert">
+  <div class="hp-alert-left">
+    <span class="hp-alert-blink">🚨</span>
+    EMERGENCY — HONEYPOT ACTIVATED
+    <span class="hp-alert-sub">Gateway has shifted · real infrastructure moved · attacker is in deception layer</span>
+  </div>
+  <a href="http://localhost:8080" target="_blank" class="hp-alert-btn">OPEN GATEWAY →</a>
+</div>
 
 <div class="layout">
 
@@ -395,6 +407,22 @@ function toast(intensity){
 // ── COLOUR MAP ──────────────────────────
 const CM={cyan:'#38bdf8',green:'#4ade80',red:'#f87171',orange:'#fb923c',gray:'#4a5a75',purple:'#a78bfa'};
 
+// ── HONEYPOT AUTO-REDIRECT ─────────────
+// Watches for honeypot_active flipping true.
+// When it does: shows alert banner + auto-opens localhost:8080 in new tab.
+// No manual refresh needed.
+let _prevHoneypot = false;
+function handleHoneypot(active) {
+  const el = document.getElementById('hp-alert');
+  if (active && !_prevHoneypot) {
+    el.style.display = 'flex';
+    window.open('http://localhost:8080', '_blank');
+  } else if (!active && _prevHoneypot) {
+    el.style.display = 'none';
+  }
+  _prevHoneypot = active;
+}
+
 // ── POLL ──────────────────────────────
 let attacking=false;
 async function poll(){
@@ -514,6 +542,9 @@ async function poll(){
       e.textContent=hp?'Active':'Idle';
       e.style.color=hp?'#f87171':'var(--dim)';
     });
+
+    // Auto-redirect when honeypot activates
+    handleHoneypot(hp);
 
     // Docker notice
     document.getElementById('docker-notice-wrap').innerHTML=inf.docker_mode

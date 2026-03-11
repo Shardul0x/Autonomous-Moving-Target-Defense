@@ -26,6 +26,11 @@
     font-weight: 600;
     letter-spacing: 1px;
     text-transform: uppercase;
+    animation: throb .8s ease infinite alternate;
+  }
+  @keyframes throb {
+    from { box-shadow: 0 0 0 0 rgba(248,113,113,.2); }
+    to   { box-shadow: 0 0 12px 4px rgba(248,113,113,.15); }
   }
   h1 { font-size: 32px; font-weight: 700; color: #f87171; }
   p { color: #64748b; font-size: 15px; }
@@ -39,24 +44,95 @@
     font-size: 12px;
     color: #f87171;
     line-height: 2;
+    min-width: 300px;
   }
   #ts { color: #fb923c; }
+
+  /* Restoring overlay */
+  #restoring {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.85);
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    z-index: 999;
+  }
+  #restoring.show { display: flex; }
+  .restore-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: #4ade80;
+    letter-spacing: 2px;
+  }
+  .restore-sub { font-size: 13px; color: #64748b; }
+  .restore-count { font-size: 48px; font-weight: 900; color: #4ade80; font-family: monospace; }
 </style>
 </head>
 <body>
+
+  <!-- Shown when MTD stops and gateway switches back to real app -->
+  <div id="restoring">
+    <div class="restore-title">✓ REAL SERVER RESTORED</div>
+    <div class="restore-sub">Gateway switching back to legitimate service</div>
+    <div class="restore-count" id="cd">3</div>
+  </div>
+
   <div class="badge">HONEYPOT ACTIVE — DECEPTION SYSTEM</div>
   <h1>You have been redirected</h1>
   <p>The real infrastructure has moved. You are now in the honeypot.</p>
   <div class="log">
-    <div>IP: <span id="ip">--</span></div>
+    <div>IP: <span id="ip">REDACTED</span></div>
     <div>Time: <span id="ts">--</span></div>
     <div>Status: Activity being logged</div>
     <div>MTD: Infrastructure shifted away</div>
   </div>
-  <script>
-    document.getElementById('ts').textContent = new Date().toLocaleTimeString();
-    document.getElementById('ip').textContent = 'REDACTED';
-    setInterval(() => document.getElementById('ts').textContent = new Date().toLocaleTimeString(), 1000);
-  </script>
+
+<script>
+  document.getElementById('ts').textContent = new Date().toLocaleTimeString();
+  setInterval(() => document.getElementById('ts').textContent = new Date().toLocaleTimeString(), 1000);
+
+  // Poll Flask. When honeypot_active goes false (attack stopped),
+  // count down and reload — nginx now points back to real app.
+  const FLASK = 'http://host.docker.internal:5000';
+  let triggered = false;
+
+  async function checkState() {
+    try {
+      const res = await fetch(FLASK + '/api/state');
+      if (!res.ok) return;
+      const d = await res.json();
+
+      if (!d.infra.honeypot_active && !triggered) {
+        triggered = true;
+        startRestore();
+      }
+    } catch (e) {}
+  }
+
+  function startRestore() {
+    const overlay = document.getElementById('restoring');
+    const counter = document.getElementById('cd');
+    overlay.classList.add('show');
+    let n = 3;
+    counter.textContent = n;
+    const iv = setInterval(() => {
+      n--;
+      counter.textContent = n;
+      if (n <= 0) {
+        clearInterval(iv);
+        window.location.reload();
+      }
+    }, 1000);
+  }
+
+  // Wait 5s before starting to poll — give nginx a moment to settle
+  // before we start watching for deactivation
+  setTimeout(() => {
+    setInterval(checkState, 2000);
+  }, 5000);
+</script>
 </body>
 </html>

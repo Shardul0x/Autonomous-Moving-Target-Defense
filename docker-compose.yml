@@ -13,6 +13,11 @@ services:
     ports:
       - "8081:80"
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:80"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
 
   honeypot:
     build: ./honeypot
@@ -22,6 +27,11 @@ services:
     ports:
       - "8082:80"
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:80"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
 
   gateway:
     build: ./gateway
@@ -31,6 +41,8 @@ services:
     ports:
       - "8080:80"
     depends_on:
-      - webapp
-      - honeypot
+      webapp:
+        condition: service_healthy
+      honeypot:
+        condition: service_healthy
     restart: unless-stopped

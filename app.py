@@ -23,25 +23,47 @@ def check_docker():
 
 def nginx_switch(target: str) -> bool:
     """
-    Write nginx config using printf inside the container (no temp files, no heredoc).
-    Single-line nginx config avoids ALL escaping issues on Windows/Linux.
+    Write nginx config by passing each line via printf to avoid ALL shell quoting issues.
+    Uses container name (not IP) so Docker DNS resolves correctly.
     """
     upstream = "mtd_honeypot" if target == "honeypot" else "mtd_webapp"
-    # Single line nginx config — simplest possible, definitely valid
-    cfg = f"events{{}} http{{server{{listen 80;location/{{proxy_pass http://{upstream}:80;}}}}}}"
+    # Build config lines separately — no braces or quotes escaping nightmare
+    cfg_lines = [
+        "events {}",
+        "http {",
+        "  server {",
+        "    listen 80;",
+        "    location / {",
+        f"      proxy_pass http://{upstream}:80;",
+        "      proxy_connect_timeout 5s;",
+        "    }",
+        "  }",
+        "}",
+    ]
+    # Join with newlines and write using printf (safe, no heredoc needed)
+    cfg_escaped = "\\n".join(cfg_lines)
     try:
         write = subprocess.run(
             ["docker", "exec", "mtd_gateway", "sh", "-c",
-             f"echo '{cfg}' > /etc/nginx/nginx.conf"],
+             f"printf '{cfg_escaped}\\n' > /etc/nginx/nginx.conf"],
             capture_output=True, timeout=8, text=True)
         if write.returncode != 0:
             print(f"[Docker] write failed: {write.stderr.strip()}")
             return False
+
+        # Validate config before reloading
+        test = subprocess.run(
+            ["docker", "exec", "mtd_gateway", "nginx", "-t"],
+            capture_output=True, timeout=8, text=True)
+        if test.returncode != 0:
+            print(f"[Docker] nginx config invalid: {test.stderr.strip()}")
+            return False
+
         rel = subprocess.run(
             ["docker", "exec", "mtd_gateway", "nginx", "-s", "reload"],
             capture_output=True, timeout=8, text=True)
         ok = rel.returncode == 0
-        print(f"[Docker] nginx->{upstream}: {'OK' if ok else 'FAIL '+rel.stderr.strip()}")
+        print(f"[Docker] nginx->{upstream}: {'OK' if ok else 'FAIL: '+rel.stderr.strip()}")
         return ok
     except Exception as e:
         print(f"[Docker] error: {e}")

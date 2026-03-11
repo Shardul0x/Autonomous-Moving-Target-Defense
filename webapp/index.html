@@ -30,13 +30,91 @@
   h1 { font-size: 32px; font-weight: 700; color: #34d399; }
   p { color: #64748b; font-size: 15px; }
   .port { font-family: monospace; color: #38bdf8; font-size: 13px; }
+
+  /* Countdown overlay shown just before reload */
+  #shifting {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.85);
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    z-index: 999;
+  }
+  #shifting.show { display: flex; }
+  .shift-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: #f87171;
+    letter-spacing: 2px;
+    animation: pulse .6s ease infinite alternate;
+  }
+  @keyframes pulse { from { opacity: .6; } to { opacity: 1; } }
+  .shift-sub { font-size: 13px; color: #64748b; }
+  .shift-count { font-size: 48px; font-weight: 900; color: #f87171; font-family: monospace; }
 </style>
 </head>
 <body>
+
+  <!-- Shown briefly before page reloads to honeypot -->
+  <div id="shifting">
+    <div class="shift-title">⚠ MTD EMERGENCY SHIFT</div>
+    <div class="shift-sub">Infrastructure moving — gateway switching to deception layer</div>
+    <div class="shift-count" id="cd">3</div>
+  </div>
+
   <div class="badge">REAL SERVICE — LEGITIMATE ACCESS</div>
   <h1>You reached the real server</h1>
   <p>This is the actual web application behind the MTD gateway.</p>
   <p>Legitimate user traffic is served here.</p>
   <div class="port">Direct access: localhost:8081 &nbsp;|&nbsp; Via gateway: localhost:8080</div>
+
+<script>
+  // Poll the Flask backend every 2 seconds.
+  // When honeypot_active flips true, show a 3-second countdown
+  // then reload — nginx has already switched by then so the reload
+  // naturally lands on the honeypot page. No manual refresh needed.
+
+  const FLASK = 'http://host.docker.internal:5000';// Flask backend
+  let triggered = false;
+
+  async function checkState() {
+    try {
+      const res = await fetch(FLASK + '/api/state');
+      if (!res.ok) return;
+      const d = await res.json();
+
+      if (d.infra.honeypot_active && !triggered) {
+        triggered = true;
+        startCountdown();
+      }
+    } catch (e) {
+      // Flask not reachable — skip silently
+    }
+  }
+
+  function startCountdown() {
+    const overlay = document.getElementById('shifting');
+    const counter = document.getElementById('cd');
+    overlay.classList.add('show');
+    let n = 3;
+    counter.textContent = n;
+    const iv = setInterval(() => {
+      n--;
+      counter.textContent = n;
+      if (n <= 0) {
+        clearInterval(iv);
+        // Reload this tab — nginx now points to honeypot so it serves that page
+        window.location.reload();
+      }
+    }, 1000);
+  }
+
+  // Start polling immediately
+  setInterval(checkState, 2000);
+  checkState();
+</script>
 </body>
 </html>
